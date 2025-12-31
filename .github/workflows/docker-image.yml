@@ -15,4 +15,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build -t spring-boot-app:latest -f ./coursera-spring-hello-world1/Dockerfile ./coursera-spring-hello-world1
+      run: docker build -t spring-boot-app:latest -f ./Dockerfile .
