@@ -1,4 +1,14 @@
+![CI](https://github.com/harina-30/spring-boot-docker/actions/workflows/pipeline.yml/badge.svg)
+
 Just a sample hello world application using Java/Spring Boot
+
+**Pull the built image:**
+
+```bash
+# Pull latest from GHCR (if image is public or you are authenticated)
+# docker pull ghcr.io/harina-30/spring-boot-app:latest
+```
+
 
 ## Docker Compose (recommended)
 
