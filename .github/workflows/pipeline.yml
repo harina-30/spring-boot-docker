@@ -23,31 +23,55 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Install AWS CLI v2
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update
+
+      - name: Ensure ECR repository exists
+        run: |
+          aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPO }} || \
+            aws ecr create-repository --repository-name ${{ secrets.ECR_REPO }}
+
+      - name: Assert required secrets
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] || [ -z "${{ secrets.AWS_REGION }}" ] || [ -z "${{ secrets.AWS_ACCOUNT_ID }}" ] || [ -z "${{ secrets.ECR_REPO }}" ]; then
+            echo "Missing one of: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_ACCOUNT_ID, ECR_REPO"
+            exit 1
+          fi
 
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '21' 
 
       - name: Run Maven tests
         run: mvn -f ./pom.xml test --batch-mode
 
-      - name: Build and push Docker image
+      - name: Build and push image to ECR
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/spring-boot-app:latest
-            ghcr.io/${{ github.repository_owner }}/spring-boot-app:sha-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/spring-boot-app:${{ github.ref_name }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:sha-${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
