@@ -23,12 +23,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Assert AWS auth configuration
+        run: |
+          # Require either OIDC role OR access keys + region
+          if [ -n "${{ secrets.AWS_ROLE_TO_ASSUME }}" ]; then
+            echo "Using OIDC role: ${{ secrets.AWS_ROLE_TO_ASSUME }}"
+          elif [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] && [ -n "${{ secrets.AWS_REGION }}" ]; then
+            echo "Using access key credentials"
+          else
+            echo "Missing AWS auth configuration. Set either 'AWS_ROLE_TO_ASSUME' (recommended) or 'AWS_ACCESS_KEY_ID'/'AWS_SECRET_ACCESS_KEY'/'AWS_REGION' secrets."
+            exit 1
+          fi
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-region: ${{ secrets.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
