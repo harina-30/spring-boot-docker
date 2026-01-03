@@ -7,10 +7,11 @@ on:
 
 jobs:
   docker-build-push:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout source code
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -18,25 +19,26 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-north-1 
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker image
-        run: docker build -t spring-boot-app .
+        run: |
+          docker build -t spring-boot-app .
 
       - name: Tag Docker image
         run: |
-          docker tag spring-boot-app:latest \
-          665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
+          docker tag spring-boot-app:latest ${{ secrets.ECR_REPO }}:latest
 
       - name: Push Docker image to ECR
         run: |
-          docker push \
-          665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
+          docker push ${{ secrets.ECR_REPO }}:latest
+
 
   deploy:
+    name: Deploy to EC2
     needs: docker-build-push
     runs-on: ubuntu-latest
 
@@ -48,12 +50,8 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EC2 }}
           script: |
-            docker pull 665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
-            docker stop spring-boot || true
-            docker rm spring-boot || true
-            docker run -d -p 8080:8080 --name spring-boot \
-            665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
-
-        
-
-
+            docker login -u AWS -p $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+            docker pull ${{ secrets.ECR_REPO }}:latest
+            docker stop springboot || true
+            docker rm springboot || true
+            docker run -d -p 8080:8080 --name springboot ${{ secrets.ECR_REPO }}:latest
