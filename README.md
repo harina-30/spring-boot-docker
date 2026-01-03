@@ -33,3 +33,4 @@ Notes:
 
 - Build locally: `./mvnw.cmd clean package`
 - Run jar: `java -jar target\coursera-0.0.1-SNAPSHOT.jar --server.port=8080`
+<!-- trigger deploy -->
