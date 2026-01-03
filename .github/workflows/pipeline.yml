@@ -18,24 +18,23 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
+          aws-region: eu-north-1 
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker image
-        run: |
-          docker build -t spring-boot-app .
+        run: docker build -t spring-boot-app .
 
       - name: Tag Docker image
         run: |
           docker tag spring-boot-app:latest \
-          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/spring-boot-app:latest
+          665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
 
       - name: Push Docker image to ECR
         run: |
           docker push \
-          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/spring-boot-app:latest
+          665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
 
   deploy:
     needs: docker-build-push
@@ -49,10 +48,12 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EC2 }}
           script: |
-            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/spring-boot-app:latest
+            docker pull 665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
             docker stop spring-boot || true
             docker rm spring-boot || true
             docker run -d -p 8080:8080 --name spring-boot \
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/spring-boot-app:latest
+            665168932067.dkr.ecr.eu-north-1.amazonaws.com/spring-boot-app:latest
+
+        
 
 
