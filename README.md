@@ -33,3 +33,17 @@ Notes:
 
 - Build locally: `./mvnw.cmd clean package`
 - Run jar: `java -jar target\coursera-0.0.1-SNAPSHOT.jar --server.port=8080`
+
+---
+
+## CI: Push to AWS ECR 🔧
+This repository supports pushing multi-arch Docker images to Amazon ECR via GitHub Actions. For a secure setup using GitHub OIDC (no long-lived AWS secrets), see `docs/aws-oidc-setup.md` for step-by-step instructions and example policies.
+
+### Verify images in ECR
+After a successful run, you can verify images with the AWS CLI:
+
+```bash
+aws ecr describe-images --repository-name <repo> --region <region>
+```
+
+Replace `<repo>` and `<region>` with your values. You can also view images in the AWS Console under ECR → Repositories.
