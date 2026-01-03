@@ -1,0 +1,27 @@
+name: Test OIDC Role
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate-oidc:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials (assume role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Show caller identity
+        run: aws sts get-caller-identity
+
+      - name: Verify ECR access (repository may not exist yet)
+        run: |
+          set -e
+          aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPO }} || echo "Repository not found (this is okay if you haven't created it yet)"
