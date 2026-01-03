@@ -75,3 +75,37 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: docker build -t spring-boot-app .
+
+  deploy-to-ec2:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY_EC2 }}
+        script: |
+          cd /home/ubuntu/app
+          docker stop spring-boot || true
+          docker rm spring-boot || true
+          docker run -d -p 8080:8080 --name spring-boot spring-boot-app
+
+
