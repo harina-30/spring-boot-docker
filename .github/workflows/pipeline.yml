@@ -39,11 +39,16 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           port: 22
-          key: |
-            ${{ secrets.SSH_PRIVATE_KEY_EC2 }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_EC2 }}
           script: |
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+            | docker login --username AWS --password-stdin \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
             docker stop springboot || true
             docker rm springboot || true
+
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+
             docker run -d --name springboot -p 8080:8080 \
-              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
