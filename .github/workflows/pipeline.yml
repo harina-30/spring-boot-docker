@@ -7,11 +7,10 @@ on:
 
 jobs:
   docker-build-push:
-    name: Build and Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -24,21 +23,12 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
+      - name: Build and push Docker image
         run: |
-          docker build -t spring-boot-app .
-
-      - name: Tag Docker image
-        run: |
-          docker tag spring-boot-app:latest ${{ secrets.ECR_REPO }}:latest
-
-      - name: Push Docker image to ECR
-        run: |
-          docker push ${{ secrets.ECR_REPO }}:latest
-
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest .
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
 
   deploy:
-    name: Deploy to EC2
     needs: docker-build-push
     runs-on: ubuntu-latest
 
@@ -50,8 +40,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EC2 }}
           script: |
-            docker login -u AWS -p $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-            docker pull ${{ secrets.ECR_REPO }}:latest
             docker stop springboot || true
             docker rm springboot || true
-            docker run -d -p 8080:8080 --name springboot ${{ secrets.ECR_REPO }}:latest
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+            docker run -d --name springboot -p 8080:8080 ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
